@@ -9,3 +9,19 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+alias RemoteInterview.{Repo, User}
+
+users_to_create = 1_000_000
+
+1..users_to_create
+|> Enum.chunk_every(10_000)
+|> Enum.each(fn chunk ->
+  users =
+    Enum.map(chunk, fn _n ->
+      datetime = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      %{points: 0, inserted_at: datetime, updated_at: datetime}
+    end)
+
+  Repo.insert_all(User, users)
+end)
