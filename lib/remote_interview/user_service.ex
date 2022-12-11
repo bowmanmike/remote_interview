@@ -1,7 +1,10 @@
 defmodule RemoteInterview.UserService do
   use GenServer
 
-  @one_minute 1000 * 60
+  alias RemoteInterview.{Repo, User}
+
+  # TODO: Change back to 1000 * 60
+  @one_minute 1000 * 10
 
   @impl true
   def init(state) do
@@ -15,26 +18,37 @@ defmodule RemoteInterview.UserService do
   end
 
   def show_users() do
-    GenServer.cast(__MODULE__, :show_users)
+    GenServer.call(__MODULE__, :show_users)
   end
 
   @impl true
   def handle_info(:update_number, state) do
     schedule_work()
     new_number = :rand.uniform(100)
+    IO.puts("Setting new number to #{new_number}")
+    # need to also update user points here
+    randomize_point_values()
+    IO.puts("User points randomized")
 
     {:noreply, %{state | min_number: new_number}}
   end
 
   @impl true
-  def handle_cast(:show_users, state) do
-    new_state = %{state | timestamp: DateTime.utc_now()}
-    # grab 2 random users here
+  def handle_call(:show_users, _from, state) do
+    users =
+      User
+      |> User.where_points_above(state.min_number)
+      |> User.with_random_order()
+      |> User.with_limit(2)
+      |> Repo.all()
 
-    {:noreply, new_state}
+    new_state = %{state | timestamp: DateTime.utc_now()}
+    {:reply, users, new_state}
   end
 
   def default_state, do: %{min_number: 0, timestamp: nil}
 
   def schedule_work, do: Process.send_after(self(), :update_number, @one_minute)
+
+  defp randomize_point_values, do: User.randomize_points()
 end
