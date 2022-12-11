@@ -3,8 +3,7 @@ defmodule RemoteInterview.UserService do
 
   alias RemoteInterview.{Repo, User}
 
-  # TODO: Change back to 1000 * 60
-  @one_minute 1000 * 10
+  @one_minute 1000 * 60
 
   @impl true
   def init(state) do
@@ -26,7 +25,6 @@ defmodule RemoteInterview.UserService do
     schedule_work()
     new_number = :rand.uniform(100)
     IO.puts("Setting new number to #{new_number}")
-    # need to also update user points here
     randomize_point_values()
     IO.puts("User points randomized")
 
@@ -42,11 +40,14 @@ defmodule RemoteInterview.UserService do
       |> User.with_limit(2)
       |> Repo.all()
 
-    new_state = %{state | timestamp: DateTime.utc_now()}
-    {:reply, users, new_state}
+    new_timestamp = DateTime.utc_now()
+    prev_timestamp = state.timestamp
+
+    new_state = %{state | prev_timestamp: prev_timestamp, timestamp: new_timestamp}
+    {:reply, %{users: users, timestamp: prev_timestamp}, new_state}
   end
 
-  def default_state, do: %{min_number: 0, timestamp: nil}
+  def default_state, do: %{min_number: 0, timestamp: nil, prev_timestamp: nil}
 
   def schedule_work, do: Process.send_after(self(), :update_number, @one_minute)
 
