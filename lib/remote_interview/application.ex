@@ -17,9 +17,9 @@ defmodule RemoteInterview.Application do
       # Start Finch
       {Finch, name: RemoteInterview.Finch},
       # Start the Endpoint (http/https)
-      RemoteInterviewWeb.Endpoint
+      RemoteInterviewWeb.Endpoint,
       # Start a worker by calling: RemoteInterview.Worker.start_link(arg)
-      # {RemoteInterview.Worker, arg}
+      {RemoteInterview.UserService, RemoteInterview.UserService.default_state()}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
