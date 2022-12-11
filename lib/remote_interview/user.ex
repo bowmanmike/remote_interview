@@ -32,7 +32,41 @@ defmodule RemoteInterview.User do
   end
 
   def randomize_points do
+    # q = from([u] in __MODULE__)
+    # stream = Repo.stream(q)
+
+    # Task.async_stream(stream, fn ->
+    #   require IEx
+    #   IEx.pry()
+    # end)
+
+    # Repo.transaction(fn ->
+    #   tasks =
+    #     stream
+    #     |> Enum.chunk_every(1000)
+    #     |> Enum.map(fn chunk ->
+    #       Task.async(fn ->
+    #         q = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
+    #         Repo.update_all(q, [])
+    #       end)
+
+    #       # Enum.map(chunk, fn u ->
+    #       #   Task.async(fn ->
+    #       #     u |> __MODULE__.changeset(%{points: :rand.uniform(100)}) |> Repo.update()
+    #       #   end)
+    #       # end)
+    #     end)
+
+    #   Task.await_many(tasks)
+    # end)
+
+    # tasks = Enum.map(1..10_000, fn _n ->
+    # Repo.stream()
+    # end)
+    # Task.await_many(tasks)
+    # TODO: Would like to find a way to optimize this.
+    #       In theory, we could split the table into batches and update them in chunks
     query = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
-    Repo.update_all(query, [])
+    Repo.update_all(query, [], timeout: 60_000)
   end
 end
