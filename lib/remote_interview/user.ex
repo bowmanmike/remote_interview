@@ -44,7 +44,7 @@ defmodule RemoteInterview.User do
     Repo.transaction(
       fn ->
         stream
-        |> Stream.chunk_every(100_000)
+        |> Stream.chunk_every(200_000)
         |> Task.async_stream(
           fn chunk ->
             ids = Enum.map(chunk, fn user -> user.id end)
