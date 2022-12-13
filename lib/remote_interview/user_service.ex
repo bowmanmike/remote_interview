@@ -3,7 +3,8 @@ defmodule RemoteInterview.UserService do
 
   alias RemoteInterview.{Repo, User}
 
-  @one_minute 1000 * 60
+  # TODO: Change back to 60
+  @one_minute 1000 * 20
 
   @impl true
   def init(state) do
