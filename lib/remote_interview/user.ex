@@ -31,42 +31,52 @@ defmodule RemoteInterview.User do
     limit(queryable, ^number)
   end
 
+  def randomize_points(user = %__MODULE__{}) do
+    user
+    |> changeset(%{points: :rand.uniform(100)})
+    |> Repo.update!()
+  end
+
   def randomize_points do
-    # q = from([u] in __MODULE__)
-    # stream = Repo.stream(q)
+    query = from(u in __MODULE__)
+    stream = Repo.stream(query)
 
-    # Task.async_stream(stream, fn ->
-    #   require IEx
-    #   IEx.pry()
-    # end)
+    Repo.transaction(
+      fn ->
+        stream
+        |> Stream.chunk_every(100_000)
+        |> Task.async_stream(
+          fn chunk ->
+            ids = Enum.map(chunk, fn user -> user.id end)
+            now = DateTime.utc_now()
 
-    # Repo.transaction(fn ->
-    #   tasks =
-    #     stream
-    #     |> Enum.chunk_every(1000)
-    #     |> Enum.map(fn chunk ->
-    #       Task.async(fn ->
-    #         q = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
-    #         Repo.update_all(q, [])
-    #       end)
+            q =
+              from(u in __MODULE__,
+                where: u.id in ^ids,
+                update: [
+                  set: [
+                    points: fragment("FLOOR(RANDOM() * 100)"),
+                    updated_at: ^now
+                  ]
+                ]
+              )
 
-    #       # Enum.map(chunk, fn u ->
-    #       #   Task.async(fn ->
-    #       #     u |> __MODULE__.changeset(%{points: :rand.uniform(100)}) |> Repo.update()
-    #       #   end)
-    #       # end)
-    #     end)
+            Repo.update_all(q, [])
+          end,
+          timeout: :infinity,
+          max_concurrency: 100
+        )
+        |> Stream.run()
+      end,
+      timeout: :infinity
+    )
 
-    #   Task.await_many(tasks)
-    # end)
-
-    # tasks = Enum.map(1..10_000, fn _n ->
-    # Repo.stream()
-    # end)
-    # Task.await_many(tasks)
     # TODO: Would like to find a way to optimize this.
     #       In theory, we could split the table into batches and update them in chunks
-    query = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
-    Repo.update_all(query, [], timeout: 60_000)
+    # stream = Repo.stream(from([u] in __MODULE__))
+
+    # NOTE: This is the easiest option but it takes about 15 seconds and blocks the DB
+    # query = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
+    # Repo.update_all(query, [], timeout: 60_000)
   end
 end
