@@ -37,7 +37,11 @@ defmodule RemoteInterview.User do
     |> Repo.update!()
   end
 
-  def randomize_points do
+  def randomize_points, do: randomize_points_update_all()
+
+  # NOTE: I'll leave this function here as evidence, or if future users
+  #       want to do more benchmarking.
+  def randomize_points_async do
     query = from(u in __MODULE__)
     stream = Repo.stream(query)
 
@@ -70,13 +74,16 @@ defmodule RemoteInterview.User do
       end,
       timeout: :infinity
     )
+  end
 
-    # TODO: Would like to find a way to optimize this.
-    #       In theory, we could split the table into batches and update them in chunks
-    # stream = Repo.stream(from([u] in __MODULE__))
+  def randomize_points_update_all do
+    updated_at = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-    # NOTE: This is the easiest option but it takes about 15 seconds and blocks the DB
-    # query = from(u in __MODULE__, update: [set: [points: fragment("FLOOR(RANDOM() * 100)")]])
-    # Repo.update_all(query, [], timeout: 60_000)
+    query =
+      from(u in __MODULE__,
+        update: [set: [points: fragment("FLOOR(RANDOM() * 100)"), updated_at: ^updated_at]]
+      )
+
+    Repo.update_all(query, [], timeout: 60_000)
   end
 end
